@@ -980,7 +980,6 @@ function generateGameReportText(gData) {
   });
   report += `\nHistorique des actions (${gData.history.length} tours) :\n`;
   
-  // On inverse pour l'ordre chronologique (du premier au dernier tour)
   const chronological = [...gData.history].reverse();
   chronological.forEach((h, idx) => {
     let detail = "";
@@ -1058,10 +1057,8 @@ function copyReportText() {
   if (textarea) {
     textarea.select();
     navigator.clipboard.writeText(textarea.value).then(() => {
-      // MODIFICATION ICI : Utilisation de openReportModal au lieu de alert()
       openReportModal("📋 Rapport de partie", "Rapport copié dans le presse-papier ! Tu peux me le coller ici.\n\n" + textarea.value);
     }).catch(() => {
-      // Fallback si l'API clipboard est bloquée
       document.execCommand('copy');
       openReportModal("📋 Rapport de partie", "Rapport copié !");
     });
@@ -1444,6 +1441,8 @@ function render() {
 
   if (history.length > 0) {
     document.getElementById('history-card').style.display = 'block';
+  } else {
+    document.getElementById('history-card').style.display = 'none';
   }
 
   players.forEach((p, idx) => {
@@ -1673,7 +1672,7 @@ function openEditScoreModal(id) {
 }
 
 // ==========================================
-// 15. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES, TÊTES-DE-MORT & MAGIE PIRATE)
+// 15. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU
 // ==========================================
 function resolveMagicPirate() {
   if (players.length === 0) return;
