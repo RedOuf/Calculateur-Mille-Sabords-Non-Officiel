@@ -475,13 +475,14 @@
     .points-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
 
     .btn-zero-points {
-      width: 100%; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 1rem; margin-bottom: 8px; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.25); cursor: pointer;
+      width: 100%; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 1rem; margin-bottom: 8px; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.25); cursor: pointer; color: white; background: linear-gradient(180deg, #7f8c8d, #34495e);
     }
+    .btn-zero-points:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
 
     .btn-add-points { background: linear-gradient(180deg, #27ae60, #1e8449); color: white; border: none; padding: 10px 4px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
     .btn-sub-points { background: linear-gradient(180deg, #c0392b, #7b241c); color: white; border: none; padding: 10px 4px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
 
-    .btn-add-points:active, .btn-sub-points:active, .btn-zero-points:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+    .btn-add-points:active, .btn-sub-points:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
 
     .btn-other-points { width: 100%; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 1rem; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.25); cursor: pointer; color: white; }
 
@@ -671,9 +672,13 @@
           <button class="btn-turn btn-add" onclick="toggleAddMenu()">💰+ Butin</button>
           <button class="btn-turn btn-sub" onclick="toggleSubMenu()">💣- Perte</button>
         </div>
+        
+        <!-- Bouton 0 point constamment affiché sous les boutons Butin et Perte -->
+        <button class="btn-zero-points" onclick="addScoreToCurrentPlayer(0)">0 point</button>
+
         <div class="btn-action-row">
-          <button class="btn-turn btn-skull" onclick="toggleSkullMenu()">💀 Île de Tête-de-Mort</button>
-          <button class="btn-turn btn-zombie" onclick="toggleZombieMenu()">🧟 Attaque Zombies</button>
+          <button class="btn-turn btn-skull" onclick="toggleSkullMenu()">💀 Île de la Tête-de-Mort</button>
+          <button class="btn-turn btn-zombie" onclick="toggleZombieMenu()">🧟 Attaque de Zombies</button>
         </div>
         <div class="btn-action-row">
           <button class="btn-turn btn-magic" onclick="resolveMagicPirate()">✨ Magie Pirate (9 identiques)</button>
@@ -681,19 +686,17 @@
 
         <!-- Sous-menu : Ajout de butin -->
         <div class="action-submenu add-submenu" id="add-submenu">
-          <button class="btn-zero-points btn-add" onclick="addScoreToCurrentPlayer(0)">0 point</button>
           <div class="points-grid" id="add-points-grid"></div>
           <button class="btn-other-points btn-add" onclick="openCustomAddModal()">Autre Saisie</button>
         </div>
 
         <!-- Sous-menu : Retrait de points (perte) -->
         <div class="action-submenu sub-submenu" id="sub-submenu">
-          <button class="btn-zero-points btn-sub" onclick="addScoreToCurrentPlayer(0)">0 point</button>
           <div class="points-grid" id="sub-points-grid"></div>
           <button class="btn-other-points btn-sub" onclick="openCustomSubModal()">Autre Saisie</button>
         </div>
 
-        <!-- Sous-menu : Résolution de l'Île de Tête-de-Mort -->
+        <!-- Sous-menu : Résolution de l'Île de la Tête-de-Mort -->
         <div class="action-submenu skull-submenu" id="skull-submenu">
           <label class="pirate-card-option">
             <input type="checkbox" id="pirate-card-multiplier" onchange="togglePirateCardOption()">
@@ -985,7 +988,7 @@ function generateGameReportText(gData) {
     let detail = "";
     const prefix = h.cancelled ? '[ANNULÉ] ' : '';
     if (h.type === 'skull-island') {
-      detail = `${prefix}${h.activePlayerName} a fait l'Île de Tête-de-Mort (${h.skulls} têtes, pénalité de ${h.penalty} aux rivaux)`;
+      detail = `${prefix}${h.activePlayerName} a fait l'Île de la Tête-de-Mort (${h.skulls} têtes, pénalité de ${h.penalty} aux rivaux)`;
     } else if (h.type === 'zombie-win') {
       detail = `${prefix}${h.playerName} a gagné son combat de zombie (+1200 pts)`;
     } else if (h.type === 'zombie-loss') {
@@ -1889,25 +1892,19 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
-  // --- CORRECTION DU BUG : RECALCUL STRICT DU TOUR FINAL ---
   const hasImmediateWin = history.some(h => !h.cancelled && h.type === 'magic-pirate');
   const qualifyWinners = players.filter(p => p.score >= targetScore);
 
   if (hasImmediateWin || qualifyWinners.length > 0) {
     isFinalRound = true;
-    
-    // On reconstruit dynamiquement les joueurs qui ont déjà eu leur tour final 
-    // en parcourant l'historique valide restant (depuis la fin de la partie par le vainqueur)
     playersWhoHadFinalTurn.clear();
     
-    // 1. Tous les joueurs ayant atteint le score cible ne jouent pas de tour final supplémentaire (ils ont gagné)
     players.forEach(p => {
       if (p.score >= targetScore) {
         playersWhoHadFinalTurn.add(p.id);
       }
     });
 
-    // 2. On regarde dans l'historique non annulé si des joueurs ont joué APRÈS l'apparition du premier vainqueur
     let firstWinnerIndex = -1;
     for (let i = history.length - 1; i >= 0; i--) {
       const h = history[i];
@@ -1920,7 +1917,6 @@ function undoLastTurn() {
       }
     }
 
-    // Si on a retrouvé le moment de la victoire, seuls ceux qui ont joué après ce moment ont eu leur tour final
     if (firstWinnerIndex !== -1) {
       for (let i = 0; i < firstWinnerIndex; i++) {
         const h = history[i];
@@ -1933,11 +1929,9 @@ function undoLastTurn() {
       }
     }
   } else {
-    // Si plus aucun joueur n'atteint l'objectif (suite à l'annulation), on désactive complètement le tour final
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
   }
-  // ---------------------------------------------------------
 
   renderHistory();
   saveAllToStorage();
