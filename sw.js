@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mille-sabords-v1.0.3';
+const CACHE_NAME = 'mille-sabords-v1.0.4';
 const ASSETS_TO_CACHE = [
   'fonts/pirata-one-v23-latin-regular.woff2',
   'fonts/roboto-v51-latin-700.woff2',
