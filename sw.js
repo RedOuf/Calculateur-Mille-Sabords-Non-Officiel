@@ -1,7 +1,11 @@
-const CACHE_NAME = 'mille-sabords-v1.0.1';
+const CACHE_NAME = 'mille-sabords-v1.0.3';
 const ASSETS_TO_CACHE = [
+  'fonts/pirata-one-v23-latin-regular.woff2',
+  'fonts/roboto-v51-latin-700.woff2',
+  'fonts/roboto-v51-latin-regular.woff2',
   'index.html',
   'Images/logo.png',
+  'manifest.json',
   'Sons/Bruit de pieces.mp3',
   'Sons/Bruit de canon.mp3',
   'Sons/Bruit Rire diabolique.mp3',

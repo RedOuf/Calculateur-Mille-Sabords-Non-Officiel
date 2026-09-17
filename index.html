@@ -4,10 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calculateur pour Mille Sabords - Non officiel</title>
+  <!-- Lien vers le fichier manifest pour la Progressive Web App (PWA) -->
   <link rel="manifest" href="manifest.json">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Pirata+One&family=Roboto:wght@400;700&display=swap');
+    /* ==========================================
+       IMPORTATION LOCALE DES POLICES D'ÉCRITURE
+       ========================================== */
+    @font-face {
+      font-display: swap;
+      font-family: 'Pirata One';
+      font-style: normal;
+      font-weight: 400;
+      src: url('fonts/pirata-one-v23-latin-regular.woff2') format('woff2');
+    }
 
+    @font-face {
+      font-display: swap;
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 400;
+      src: url('fonts/roboto-v51-latin-regular.woff2') format('woff2');
+    }
+
+    @font-face {
+      font-display: swap;
+      font-family: 'Roboto';
+      font-style: normal;
+      font-weight: 700;
+      src: url('fonts/roboto-v51-latin-700.woff2') format('woff2');
+    }
+
+    /* ==========================================
+       VARIABLES CSS (THÈME PIRATE & PARCHEMIN)
+       ========================================== */
     :root {
       --wood-dark: #2b1810;
       --wood-medium: #4a2e1b;
@@ -25,8 +54,10 @@
       --text-muted: #6e5843;
     }
 
+    /* Réinitialisation de base pour tous les éléments */
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
 
+    /* Style général du corps de la page (fond sombre marin) */
     body {
       background-color: #111a24;
       background-image: 
@@ -39,6 +70,7 @@
       min-height: 100vh;
     }
 
+    /* Cadre principal en style parchemin / bois */
     .pirate-frame {
       background: var(--parchment-bg);
       border: 4px solid var(--wood-medium);
@@ -48,6 +80,7 @@
       position: relative;
     }
 
+    /* En-tête principal de l'application */
     .pirate-header {
       text-align: center;
       padding-bottom: 12px;
@@ -82,6 +115,7 @@
       line-height: 1.2;
     }
 
+    /* Cartes de contenu (style parchemin intérieur) */
     .pirate-card {
       background-color: var(--parchment-card);
       border: 2px solid var(--parchment-border);
@@ -103,6 +137,7 @@
       padding-bottom: 5px;
     }
 
+    /* Boîte de configuration des paramètres de partie */
     .config-box {
       display: flex;
       flex-direction: column;
@@ -135,6 +170,7 @@
       text-align: center;
     }
 
+    /* Style des interrupteurs en forme de gouvernail / levier de navire */
     .ship-lever-container {
       display: flex;
       align-items: center;
@@ -179,6 +215,7 @@
 
     .wheel-spoke { font-size: 1.1rem; line-height: 1; transition: transform 0.3s; }
 
+    /* État actif des leviers (activé / enclenché) */
     .ship-lever-container.active .lever-handle {
       transform: translateX(34px);
       background: linear-gradient(135deg, #27ae60, #1e8449, #2b1810);
@@ -187,6 +224,7 @@
 
     .ship-lever-container.active .wheel-spoke { transform: rotate(180deg); }
 
+    /* Bouton flottant pour accéder aux réglages audio */
     .fixed-settings-btn {
       position: fixed;
       bottom: 20px;
@@ -211,6 +249,7 @@
       transform: scale(0.9);
     }
 
+    /* Zone d'ajout de joueurs */
     .add-player-box { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 
     .input-text {
@@ -227,6 +266,7 @@
 
     .btn-add-player { flex: 0 0 auto; white-space: nowrap; }
 
+    /* Styles généraux des boutons */
     .btn {
       border: none;
       padding: 8px 12px;
@@ -270,6 +310,7 @@
 
     .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
 
+    /* Liste des joueurs en phase de configuration */
     .setup-player-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
     .setup-player-item {
       display: flex;
@@ -282,6 +323,7 @@
       border: 1px solid var(--parchment-border);
     }
 
+    /* Archives des parties sauvegardées */
     .saved-games-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
     .saved-game-item {
       display: flex;
@@ -301,6 +343,7 @@
     .saved-game-meta { font-size: 0.8rem; color: var(--text-muted); }
     .saved-game-actions { display: flex; gap: 6px; }
 
+    /* Banderoles d'alerte et d'annonce de début de tour */
     .alert-banner {
       background: var(--red-pirate);
       color: white;
@@ -326,6 +369,7 @@
       display: none;
     }
 
+    /* Carte de joueur individuelle dans le tableau de scores */
     .player-card {
       background: #fff8eb;
       border: 2px solid var(--parchment-border);
@@ -365,10 +409,12 @@
     .player-score:hover { text-decoration: underline; }
     .score-target-text { font-size: 0.85rem; color: var(--text-muted); font-weight: bold; }
 
+    /* Barre de progression vers l'objectif de points */
     .progress-bar-bg { background: #d7ccc8; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; border: 1px solid var(--parchment-border); }
     .progress-bar-fill { background: linear-gradient(90deg, var(--gold-accent), var(--gold-shiny)); height: 100%; width: 0%; transition: width 0.3s; }
     .progress-bar-fill.finished { background: var(--green-pirate); }
 
+    /* En-tête du tour en cours */
     .turn-header {
       text-align: center;
       background: var(--wood-medium);
@@ -384,6 +430,7 @@
     .turn-buttons { display: flex; flex-direction: column; gap: 10px; }
     .btn-action-row { display: flex; gap: 10px; }
 
+    /* Boutons d'actions du tour (Butin, Perte, Tête-de-Mort, Zombies, Magie Pirate) */
     .btn-turn {
       flex: 1;
       padding: 14px 8px;
@@ -406,7 +453,9 @@
     .btn-sub { background: linear-gradient(180deg, #c0392b, #922b21); }
     .btn-skull { background: linear-gradient(180deg, #7d3c98, #512e5f); }
     .btn-zombie { background: linear-gradient(180deg, #16a085, #117a65); }
+    .btn-magic { background: linear-gradient(180deg, #f39c12, #d35400); width: 100%; }
 
+    /* Sous-menus contextuels des actions */
     .action-submenu {
       display: none;
       border-radius: 8px;
@@ -422,6 +471,7 @@
 
     .submenu-title { font-weight: bold; color: var(--wood-dark); margin-bottom: 10px; font-size: 0.95rem; }
 
+    /* Grille de sélection des points */
     .points-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
 
     .btn-zero-points {
@@ -435,6 +485,7 @@
 
     .btn-other-points { width: 100%; padding: 10px; border-radius: 20px; font-weight: bold; font-size: 1rem; border: none; box-shadow: 0 3px 0 rgba(0,0,0,0.25); cursor: pointer; color: white; }
 
+    /* Grille des têtes de mort */
     .skull-buttons-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 
     .btn-skull-count {
@@ -443,6 +494,7 @@
 
     .btn-skull-count:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
 
+    /* Options des cartes spéciales (Capitaine/Pirate, Paix) */
     .pirate-card-option {
       display: flex;
       align-items: center;
@@ -490,10 +542,12 @@
       cursor: pointer;
     }
 
+    /* Historique / Journal de bord du tour */
     .history-list { font-size: 0.85rem; max-height: 180px; overflow-y: auto; }
     .history-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--parchment-border); color: var(--text-muted); }
     .history-item strong { color: var(--wood-dark); }
 
+    /* Fenêtres modales de saisie / confirmation */
     .pirate-modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px;
     }
@@ -518,9 +572,11 @@
 </head>
 <body>
 
+<!-- Bouton d'accès aux réglages audio (positionné en bas à droite) -->
 <button class="fixed-settings-btn" onclick="openAudioSettingsModal()" title="Réglages audio">⚙️</button>
 
 <div class="pirate-frame">
+  <!-- En-tête de l'application -->
   <header class="pirate-header">
     <div class="skull-badge">☠️</div>
     <h1>Mille Sabords</h1>
@@ -530,16 +586,19 @@
     </div>
   </header>
 
+  <!-- Banderole d'alerte de fin de partie / tour final -->
   <div class="alert-banner" id="alert-banner"></div>
+  <!-- Banderole annonçant quel joueur commence la partie -->
   <div class="start-banner" id="start-banner">⚓ C'est parti ! <span id="first-player-announced"></span> prend la barre !</div>
 
-  <!-- MENU PRINCIPAL (PRÉPARATION ET ARCHIVES) -->
+  <!-- MENU PRINCIPAL (PRÉPARATION DE LA PARTIE ET ARCHIVES) -->
   <div id="main-menu">
     <div class="pirate-card" id="setup-card">
       <div class="card-title">
         <span>⚙️ Réglages & Équipage</span>
       </div>
       
+      <!-- Options de configuration de la partie -->
       <div class="config-box">
         <div class="config-row">
           <span class="config-label">🎯 Objectif de la Chasse :</span>
@@ -568,17 +627,20 @@
         </div>
       </div>
 
+      <!-- Formulaire d'ajout des joueurs / moussaillons -->
       <div class="add-player-box">
         <input type="text" id="player-name-input" class="input-text" placeholder="Nom du moussaillon..." autocomplete="off" onkeydown="if(event.key==='Enter') addPlayer()">
         <button class="btn btn-gold btn-add-player" onclick="addPlayer()">➕ Recruter</button>
       </div>
 
+      <!-- Liste des joueurs inscrits avant le départ -->
       <div class="setup-player-list" id="setup-player-list"></div>
 
+      <!-- Bouton de lancement de la partie (affiché à partir de 2 joueurs) -->
       <button class="btn btn-start" id="btn-start-game" onclick="createNewGame()" style="display: none;">⚓ Levez l'Ancre ! (Nouvelle Partie)</button>
     </div>
 
-    <!-- HISTORIQUE DES PARTIES ENREGISTRÉES -->
+    <!-- ARCHIVES DES PARTIES ENREGISTRÉES -->
     <div class="pirate-card" id="saved-games-card">
       <div class="card-title">
         <span>📚 Archives du Capitaine (Parties)</span>
@@ -587,13 +649,15 @@
     </div>
   </div>
 
-  <!-- SECTION JEU -->
+  <!-- SECTION JEU (TABLEAU DE BORD ACTIF) -->
   <div id="game-section" style="display: none;">
+    <!-- Boutons de navigation rapides -->
     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; gap: 8px;">
       <button class="btn btn-wood btn-sm" onclick="showSetupScreen()">📋 Menu Principal</button>
       <button class="btn btn-wood btn-sm" onclick="resetCurrentGame()">🔄 Recommencer cette partie</button>
     </div>
 
+    <!-- Carte des actions du tour actif -->
     <div class="pirate-card" id="turn-card">
       <div class="turn-header">🧭 Capitaine du tour : <span id="current-player-name">-</span></div>
       
@@ -606,23 +670,29 @@
           <button class="btn-turn btn-skull" onclick="toggleSkullMenu()">💀 Île de Tête-de-Mort</button>
           <button class="btn-turn btn-zombie" onclick="toggleZombieMenu()">🧟 Attaque Zombies</button>
         </div>
+        <div class="btn-action-row">
+          <button class="btn-turn btn-magic" onclick="resolveMagicPirate()">✨ Magie Pirate (9 identiques)</button>
+        </div>
 
+        <!-- Sous-menu : Ajout de butin -->
         <div class="action-submenu add-submenu" id="add-submenu">
           <button class="btn-zero-points btn-add" onclick="addScoreToCurrentPlayer(0)">0 point</button>
           <div class="points-grid" id="add-points-grid"></div>
           <button class="btn-other-points btn-add" onclick="openCustomAddModal()">Autre Saisie</button>
         </div>
 
+        <!-- Sous-menu : Retrait de points (perte) -->
         <div class="action-submenu sub-submenu" id="sub-submenu">
           <button class="btn-zero-points btn-sub" onclick="addScoreToCurrentPlayer(0)">0 point</button>
           <div class="points-grid" id="sub-points-grid"></div>
           <button class="btn-other-points btn-sub" onclick="openCustomSubModal()">Autre Saisie</button>
         </div>
 
+        <!-- Sous-menu : Résolution de l'Île de Tête-de-Mort -->
         <div class="action-submenu skull-submenu" id="skull-submenu">
           <label class="pirate-card-option">
             <input type="checkbox" id="pirate-card-multiplier" onchange="togglePirateCardOption()">
-            <span>🏴‍☠️ Carte Capitaine / Pirate (x2) : 200 pts/tête</span>
+            <span>🏴‍☠️ Carte Pirate (x2) : 200 pts/tête</span>
           </label>
           <label class="pirate-card-option">
             <input type="checkbox" id="peace-card-checkbox" onchange="togglePeaceCardOption()">
@@ -651,6 +721,7 @@
           </div>
         </div>
 
+        <!-- Sous-menu : Combat Zombie -->
         <div class="action-submenu zombie-submenu" id="zombie-submenu">
           <div class="submenu-title">🧟 Combat Zombie :</div>
           <div class="btn-action-row">
@@ -661,11 +732,13 @@
       </div>
     </div>
 
+    <!-- Table des capitaines (scores actuels et barres de progression) -->
     <div class="pirate-card">
       <div class="card-title">🏆 Table des Capitaines</div>
       <div id="players-container"></div>
     </div>
 
+    <!-- Journal de bord / Historique des derniers tours -->
     <div class="pirate-card" id="history-card" style="display: none;">
       <div class="card-title">
         <span>📜 Journal de Bord du Tour</span>
@@ -676,6 +749,7 @@
   </div>
 </div>
 
+<!-- Fenêtre modale générique (saisie personnalisée, édition, confirmation, réglages audio) -->
 <div class="pirate-modal-overlay" id="custom-modal-overlay">
   <div class="pirate-modal">
     <div class="pirate-modal-title" id="modal-title">Saisie du Butin</div>
@@ -690,7 +764,9 @@
 </div>
 
 <script>
-// --- EFFETS SONORES (Chemins mis à jour vers le dossier Sons/) ---
+// ==========================================
+// 1. GESTION DES EFFETS SONORES (AUDIO)
+// ==========================================
 const SOUND_EFFECTS = {
   coin: new Audio("Sons/Bruit de pieces.mp3"),
   bomb: new Audio("Sons/Bruit de canon.mp3"),
@@ -709,29 +785,38 @@ function playSound(type) {
   }
 }
 
-let savedGames = [];
-let currentGameId = null;
+// ==========================================
+// 2. VARIABLES D'ÉTAT GLOBALES DE L'APPLICATION
+// ==========================================
+let savedGames = [];           
+let currentGameId = null;      
 
-let players = [];
-let activePlayerIndex = 0;
-let initialFirstPlayerIndex = 0;
-let targetScore = 6000;
-let allowNegativeScores = false;
-let randomFirstPlayer = false;
-let soundEnabled = true;
-let history = [];
-let gameStarted = false;
-let isFinalRound = false;
-let playersWhoHadFinalTurn = new Set();
+let players = [];              
+let activePlayerIndex = 0;     
+let initialFirstPlayerIndex = 0; 
+let targetScore = 6000;        
+let allowNegativeScores = false; 
+let randomFirstPlayer = false; 
+let soundEnabled = true;       
+let history = [];              
+let gameStarted = false;       
+let isFinalRound = false;      
+let playersWhoHadFinalTurn = new Set(); 
 
-let currentModalCallback = null;
+let currentModalCallback = null; 
 
+// ==========================================
+// 3. INITIALISATION AU CHARGEMENT DE LA PAGE
+// ==========================================
 window.onload = function() {
   loadSavedGamesFromStorage();
   loadSettingsFromStorage();
   renderSavedGamesList();
 };
 
+// ==========================================
+// 4. PERSISTANCE DES RÉGLAGES AUDIO DANS LE STORAGE
+// ==========================================
 function loadSettingsFromStorage() {
   const soundPref = localStorage.getItem('mille_sabords_sound');
   if (soundPref !== null) {
@@ -796,6 +881,9 @@ function openAudioSettingsModal() {
   };
 }
 
+// ==========================================
+// 5. GESTION DU STOCKAGE DES PARTIES (LOCALSTORAGE)
+// ==========================================
 function loadSavedGamesFromStorage() {
   const data = localStorage.getItem('mille_sabords_games');
   if (data) {
@@ -873,6 +961,9 @@ function renderSavedGamesList() {
   });
 }
 
+// ==========================================
+// 6. DÉMARRAGE, CHARGEMENT ET SUPPRESSION DE PARTIE
+// ==========================================
 function createNewGame() {
   if (players.length < 2) return;
   playSound('victory');
@@ -913,7 +1004,7 @@ function loadGame(id) {
   randomFirstPlayer = g.randomFirstPlayer;
   players = g.players;
   activePlayerIndex = g.activePlayerIndex;
-  initialFirstPlayerIndex = g.initialFirstPlayerIndex;
+  initialFirstPlayerIndex = g.initialFirstPlayerIndex !== undefined ? g.initialFirstPlayerIndex : 0;
   history = g.history;
   gameStarted = g.gameStarted;
   isFinalRound = g.isFinalRound;
@@ -984,7 +1075,18 @@ function resetCurrentGame() {
     history = [];
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
+
+    // Correction Bug 1 : Respect du choix aléatoire ou du roulement séquentiel lors du "Recommencer cette partie"
+    if (randomFirstPlayer) {
+      initialFirstPlayerIndex = Math.floor(Math.random() * players.length);
+    } else {
+      initialFirstPlayerIndex = (initialFirstPlayerIndex + 1) % players.length;
+    }
     activePlayerIndex = initialFirstPlayerIndex;
+
+    const startingPlayer = players[activePlayerIndex];
+    document.getElementById('first-player-announced').innerText = startingPlayer.name;
+    document.getElementById('start-banner').style.display = 'block';
 
     document.getElementById('history-card').style.display = 'none';
     document.getElementById('history-container').innerHTML = '';
@@ -994,6 +1096,9 @@ function resetCurrentGame() {
   });
 }
 
+// ==========================================
+// 7. GÉNÉRATION DES GRILLES DE POINTS ET CONFIGURATIONS
+// ==========================================
 function initPointGrids() {
   const addGrid = document.getElementById('add-points-grid');
   const subGrid = document.getElementById('sub-points-grid');
@@ -1065,12 +1170,15 @@ function toggleRandomLever() {
   saveAllToStorage();
 }
 
+// ==========================================
+// 8. GESTION DES JOUEURS (AJOUT / SUPPRESSION)
+// ==========================================
 function addPlayer() {
   const input = document.getElementById('player-name-input');
   const name = input.value.trim();
   if (name) {
     playSound('click');
-    players.push({ id: Date.now(), name: name, score: 0 });
+    players.push({ id: Date.now() + Math.floor(Math.random() * 10000), name: name, score: 0 });
     input.value = '';
     renderSetup();
   }
@@ -1126,6 +1234,9 @@ function startNextGame() {
   render();
 }
 
+// ==========================================
+// 9. LOGIQUE DE TOUR ET ROTATION DU CAPITAINE
+// ==========================================
 function checkGameStatusAndAdvance() {
   if (players.length === 0) return;
 
@@ -1174,6 +1285,9 @@ function adjustScore(player, delta) {
   return player.score - oldScore;
 }
 
+// ==========================================
+// 10. RENDU GRAPHIQUE PRINCIPAL DE LA PARTIE
+// ==========================================
 function render() {
   if (!gameStarted) return;
 
@@ -1192,10 +1306,14 @@ function render() {
       alertBanner.style.display = 'block';
       alertBanner.innerHTML = `🎯 <strong>${winnerNames}</strong> a atteint l'objectif !<br>⚡ Dernier tour pour les autres moussaillons !`;
     } else {
+      const maxScore = sorted[0].score;
+      const topWinners = sorted.filter(p => p.score === maxScore);
+      const topNames = topWinners.map(w => w.name).join(' & ');
+      
       alertBanner.style.display = 'block';
       alertBanner.innerHTML = `
         🏆 <strong>Fin de la Chasse !</strong><br>
-        Le grand vainqueur est <strong>${sorted[0].name}</strong> avec ${sorted[0].score} pts !<br>
+        ${topWinners.length > 1 ? 'Les grands vainqueurs ex-æquo sont' : 'Le grand vainqueur est'} <strong>${topNames}</strong> avec ${maxScore} pts !<br>
         <button class="btn btn-next-game" onclick="startNextGame()">🏴‍☠️ Lancer une Nouvelle Partie avec la même équipe</button>
       `;
     }
@@ -1257,6 +1375,9 @@ function render() {
   }
 }
 
+// ==========================================
+// 11. GESTION DES FENÈTRES MODALES (BOÎTES DE DIALOGUE)
+// ==========================================
 function resetModalState() {
   document.getElementById('modal-custom-content').innerHTML = '';
   document.getElementById('modal-btn-cancel').style.display = 'inline-flex';
@@ -1319,6 +1440,9 @@ function confirmModal() {
   closeModal();
 }
 
+// ==========================================
+// 12. GESTION DES SOUS-MENUS D'ACTIONS
+// ==========================================
 function closeAllSubmenus() {
   document.getElementById('add-submenu').style.display = 'none';
   document.getElementById('sub-submenu').style.display = 'none';
@@ -1384,6 +1508,9 @@ function togglePeaceCardOption() {
   }
 }
 
+// ==========================================
+// 13. MODALES DE SAISIE PERSONNALISÉE ET D'ÉDITION
+// ==========================================
 function openCustomAddModal() {
   if (players.length === 0) return;
   const p = players[activePlayerIndex];
@@ -1426,6 +1553,35 @@ function openEditScoreModal(id) {
       render();
     }
   });
+}
+
+// ==========================================
+// 14. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES, TÊTES-DE-MORT & MAGIE PIRATE)
+// ==========================================
+function resolveMagicPirate() {
+  if (players.length === 0) return;
+  playSound('victory');
+
+  const activePlayer = players[activePlayerIndex];
+  // On pousse directement le joueur au-delà ou égal à l'objectif pour gagner immédiatement
+  const targetDiff = Math.max(0, targetScore - activePlayer.score);
+  const addBonus = targetDiff + 1000; // Assure la victoire immédiate
+  const actualChange = adjustScore(activePlayer, addBonus);
+
+  history.unshift({
+    type: 'magic-pirate',
+    playerId: activePlayer.id,
+    playerName: activePlayer.name,
+    pts: actualChange,
+    prevScore: activePlayer.score - actualChange,
+    newTotal: activePlayer.score,
+    savedActivePlayerIndex: activePlayerIndex
+  });
+
+  renderHistory();
+  checkGameStatusAndAdvance();
+  saveAllToStorage();
+  render();
 }
 
 function resolveZombie(won) {
@@ -1557,6 +1713,9 @@ function addScoreToCurrentPlayer(pts) {
   render();
 }
 
+// ==========================================
+// 15. JOURNAL DE BORD (HISTORIQUE ET ANNULATION)
+// ==========================================
 function renderHistory() {
   const container = document.getElementById('history-container');
   container.innerHTML = history.slice(0, 10).map(h => {
@@ -1571,6 +1730,8 @@ function renderHistory() {
       return `<div class="history-item" style="color: #1e8449;"><span><strong>🧟 ${h.playerName}</strong> (Zombie Gagné)</span><span><strong>+1200 pts</strong></span></div>`;
     } else if (h.type === 'zombie-loss') {
       return `<div class="history-item" style="color: #a93226;"><span><strong>🧟 ${h.activePlayerName}</strong> (Zombie Perdu)</span><span><strong>+${h.pointsPerOther} pts</strong> aux rivaux</span></div>`;
+    } else if (h.type === 'magic-pirate') {
+      return `<div class="history-item" style="color: #d35400;"><span><strong>✨ ${h.playerName}</strong> (Magie Pirate)</span><span><strong>Victoire immédiate !</strong></span></div>`;
     } else {
       return `<div class="history-item"><span><strong>${h.playerName}</strong> : ${h.pts > 0 ? '+' + h.pts : h.pts} pts</span><span>(Total: ${h.newTotal})</span></div>`;
     }
@@ -1593,35 +1754,47 @@ function undoLastTurn() {
         if (p) p.score = last.previousScores[id];
       });
     }
-  } else if (last.type === 'zombie-win') {
+  } else if (last.type === 'zombie-win' || last.type === 'magic-pirate') {
     const p = players.find(item => item.id === last.playerId);
-    if (p) p.score -= last.pts;
+    if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.pts;
   } else {
     const p = players.find(item => item.id === last.playerId);
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
+  // Correction Bug 2 : Réévaluation stricte du statut de fin de tour après une annulation
   const hasWinners = players.some(p => p.score >= targetScore);
   if (!hasWinners) {
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
+  } else {
+    playersWhoHadFinalTurn.clear();
+    players.forEach(p => {
+      if (p.score >= targetScore) {
+        playersWhoHadFinalTurn.add(p.id);
+      }
+    });
   }
 
   renderHistory();
   saveAllToStorage();
   render();
 }
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(registration => {
-          console.log('ServiceWorker enregistré avec succès : ', registration.scope);
-        })
-        .catch(err => {
-          console.log('Échec de l\'enregistrement du ServiceWorker : ', err);
-        });
-    });
-  }
+
+// ==========================================
+// 16. ENREGISTREMENT DU SERVICE WORKER (PWA)
+// ==========================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(registration => {
+        console.log('ServiceWorker enregistré avec succès : ', registration.scope);
+      })
+      .catch(err => {
+        console.log('Échec de l\'enregistrement du ServiceWorker : ', err);
+      });
+  });
+}
 </script>
 </body>
 </html>
