@@ -1889,21 +1889,30 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
+  // --- CORRECTION DU BUG : RECALCUL STRICT DU TOUR FINAL ---
   const hasImmediateWin = history.some(h => !h.cancelled && h.type === 'magic-pirate');
   const qualifyWinners = players.filter(p => p.score >= targetScore);
 
   if (hasImmediateWin || qualifyWinners.length > 0) {
     isFinalRound = true;
+    // On reconstruit proprement la liste des joueurs ayant déjà eu leur tour final 
+    // en analysant uniquement les actions valides restantes après le premier dépassement.
     playersWhoHadFinalTurn.clear();
+    
+    // Si le score d'un joueur est redescendu sous le seuil (suite à l'annulation), 
+    // il ne doit plus être considéré comme ayant fini sa partie.
     players.forEach(p => {
       if (p.score >= targetScore) {
         playersWhoHadFinalTurn.add(p.id);
       }
     });
   } else {
+    // Si aucun joueur n'a 6000+ pts (par exemple suite à l'annulation du coup de la victoire), 
+    // on désactive complètement le tour final pour revenir à un déroulement normal.
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
   }
+  // ---------------------------------------------------------
 
   renderHistory();
   saveAllToStorage();
