@@ -1895,20 +1895,45 @@ function undoLastTurn() {
 
   if (hasImmediateWin || qualifyWinners.length > 0) {
     isFinalRound = true;
-    // On reconstruit proprement la liste des joueurs ayant déjà eu leur tour final 
-    // en analysant uniquement les actions valides restantes après le premier dépassement.
+    
+    // On reconstruit dynamiquement les joueurs qui ont déjà eu leur tour final 
+    // en parcourant l'historique valide restant (depuis la fin de la partie par le vainqueur)
     playersWhoHadFinalTurn.clear();
     
-    // Si le score d'un joueur est redescendu sous le seuil (suite à l'annulation), 
-    // il ne doit plus être considéré comme ayant fini sa partie.
+    // 1. Tous les joueurs ayant atteint le score cible ne jouent pas de tour final supplémentaire (ils ont gagné)
     players.forEach(p => {
       if (p.score >= targetScore) {
         playersWhoHadFinalTurn.add(p.id);
       }
     });
+
+    // 2. On regarde dans l'historique non annulé si des joueurs ont joué APRÈS l'apparition du premier vainqueur
+    let firstWinnerIndex = -1;
+    for (let i = history.length - 1; i >= 0; i--) {
+      const h = history[i];
+      if (!h.cancelled) {
+        const p = players.find(pl => pl.id === h.playerId || pl.id === h.activePlayerId);
+        if (p && p.score >= targetScore) {
+          firstWinnerIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Si on a retrouvé le moment de la victoire, seuls ceux qui ont joué après ce moment ont eu leur tour final
+    if (firstWinnerIndex !== -1) {
+      for (let i = 0; i < firstWinnerIndex; i++) {
+        const h = history[i];
+        if (!h.cancelled && h.playerId) {
+          const p = players.find(pl => pl.id === h.playerId);
+          if (p && p.score < targetScore) {
+            playersWhoHadFinalTurn.add(p.id);
+          }
+        }
+      }
+    }
   } else {
-    // Si aucun joueur n'a 6000+ pts (par exemple suite à l'annulation du coup de la victoire), 
-    // on désactive complètement le tour final pour revenir à un déroulement normal.
+    // Si plus aucun joueur n'atteint l'objectif (suite à l'annulation), on désactive complètement le tour final
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
   }
