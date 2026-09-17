@@ -430,7 +430,7 @@
     .turn-buttons { display: flex; flex-direction: column; gap: 10px; }
     .btn-action-row { display: flex; gap: 10px; }
 
-    /* Boutons d'actions du tour (Butin, Perte, Tête-de-Mort, Zombies, Magie Pirate) */
+    /* Boutons d'actions du tour (Butin, Perte, Tête-de-Mort, Zombies) */
     .btn-turn {
       flex: 1;
       padding: 14px 8px;
@@ -453,7 +453,6 @@
     .btn-sub { background: linear-gradient(180deg, #c0392b, #922b21); }
     .btn-skull { background: linear-gradient(180deg, #7d3c98, #512e5f); }
     .btn-zombie { background: linear-gradient(180deg, #16a085, #117a65); }
-    .btn-magic { background: linear-gradient(180deg, #f39c12, #d35400); width: 100%; }
 
     /* Sous-menus contextuels des actions */
     .action-submenu {
@@ -669,9 +668,6 @@
         <div class="btn-action-row">
           <button class="btn-turn btn-skull" onclick="toggleSkullMenu()">💀 Île de Tête-de-Mort</button>
           <button class="btn-turn btn-zombie" onclick="toggleZombieMenu()">🧟 Attaque Zombies</button>
-        </div>
-        <div class="btn-action-row">
-          <button class="btn-turn btn-magic" onclick="resolveMagicPirate()">✨ Magie Pirate (9 identiques)</button>
         </div>
 
         <!-- Sous-menu : Ajout de butin -->
@@ -1004,7 +1000,7 @@ function loadGame(id) {
   randomFirstPlayer = g.randomFirstPlayer;
   players = g.players;
   activePlayerIndex = g.activePlayerIndex;
-  initialFirstPlayerIndex = g.initialFirstPlayerIndex !== undefined ? g.initialFirstPlayerIndex : 0;
+  initialFirstPlayerIndex = g.initialFirstPlayerIndex;
   history = g.history;
   gameStarted = g.gameStarted;
   isFinalRound = g.isFinalRound;
@@ -1075,18 +1071,7 @@ function resetCurrentGame() {
     history = [];
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
-
-    // Correction Bug 1 : Respect du choix aléatoire ou du roulement séquentiel lors du "Recommencer cette partie"
-    if (randomFirstPlayer) {
-      initialFirstPlayerIndex = Math.floor(Math.random() * players.length);
-    } else {
-      initialFirstPlayerIndex = (initialFirstPlayerIndex + 1) % players.length;
-    }
     activePlayerIndex = initialFirstPlayerIndex;
-
-    const startingPlayer = players[activePlayerIndex];
-    document.getElementById('first-player-announced').innerText = startingPlayer.name;
-    document.getElementById('start-banner').style.display = 'block';
 
     document.getElementById('history-card').style.display = 'none';
     document.getElementById('history-container').innerHTML = '';
@@ -1556,34 +1541,8 @@ function openEditScoreModal(id) {
 }
 
 // ==========================================
-// 14. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES, TÊTES-DE-MORT & MAGIE PIRATE)
+// 14. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES & TÊTES-DE-MORT)
 // ==========================================
-function resolveMagicPirate() {
-  if (players.length === 0) return;
-  playSound('victory');
-
-  const activePlayer = players[activePlayerIndex];
-  // On pousse directement le joueur au-delà ou égal à l'objectif pour gagner immédiatement
-  const targetDiff = Math.max(0, targetScore - activePlayer.score);
-  const addBonus = targetDiff + 1000; // Assure la victoire immédiate
-  const actualChange = adjustScore(activePlayer, addBonus);
-
-  history.unshift({
-    type: 'magic-pirate',
-    playerId: activePlayer.id,
-    playerName: activePlayer.name,
-    pts: actualChange,
-    prevScore: activePlayer.score - actualChange,
-    newTotal: activePlayer.score,
-    savedActivePlayerIndex: activePlayerIndex
-  });
-
-  renderHistory();
-  checkGameStatusAndAdvance();
-  saveAllToStorage();
-  render();
-}
-
 function resolveZombie(won) {
   if (players.length === 0) return;
   const activePlayer = players[activePlayerIndex];
@@ -1730,8 +1689,6 @@ function renderHistory() {
       return `<div class="history-item" style="color: #1e8449;"><span><strong>🧟 ${h.playerName}</strong> (Zombie Gagné)</span><span><strong>+1200 pts</strong></span></div>`;
     } else if (h.type === 'zombie-loss') {
       return `<div class="history-item" style="color: #a93226;"><span><strong>🧟 ${h.activePlayerName}</strong> (Zombie Perdu)</span><span><strong>+${h.pointsPerOther} pts</strong> aux rivaux</span></div>`;
-    } else if (h.type === 'magic-pirate') {
-      return `<div class="history-item" style="color: #d35400;"><span><strong>✨ ${h.playerName}</strong> (Magie Pirate)</span><span><strong>Victoire immédiate !</strong></span></div>`;
     } else {
       return `<div class="history-item"><span><strong>${h.playerName}</strong> : ${h.pts > 0 ? '+' + h.pts : h.pts} pts</span><span>(Total: ${h.newTotal})</span></div>`;
     }
@@ -1754,15 +1711,14 @@ function undoLastTurn() {
         if (p) p.score = last.previousScores[id];
       });
     }
-  } else if (last.type === 'zombie-win' || last.type === 'magic-pirate') {
+  } else if (last.type === 'zombie-win') {
     const p = players.find(item => item.id === last.playerId);
-    if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.pts;
+    if (p) p.score -= last.pts;
   } else {
     const p = players.find(item => item.id === last.playerId);
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
-  // Correction Bug 2 : Réévaluation stricte du statut de fin de tour après une annulation
   const hasWinners = players.some(p => p.score >= targetScore);
   if (!hasWinners) {
     isFinalRound = false;
