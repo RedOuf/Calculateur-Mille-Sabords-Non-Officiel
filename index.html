@@ -1058,11 +1058,12 @@ function copyReportText() {
   if (textarea) {
     textarea.select();
     navigator.clipboard.writeText(textarea.value).then(() => {
-      alert("Rapport copié dans le presse-papier ! Tu peux me le coller ici.");
+      // MODIFICATION ICI : Utilisation de openReportModal au lieu de alert()
+      openReportModal("📋 Rapport de partie", "Rapport copié dans le presse-papier ! Tu peux me le coller ici.\n\n" + textarea.value);
     }).catch(() => {
       // Fallback si l'API clipboard est bloquée
       document.execCommand('copy');
-      alert("Rapport copié !");
+      openReportModal("📋 Rapport de partie", "Rapport copié !");
     });
   }
 }
