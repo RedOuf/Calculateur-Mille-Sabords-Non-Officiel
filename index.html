@@ -945,7 +945,7 @@ function renderSavedGamesList() {
     const item = document.createElement('div');
     item.className = `saved-game-item ${g.id === currentGameId ? 'active-game' : ''}`;
     
-    const hasImmediateWin = g.history && g.history.some(h => h.type === 'magic-pirate');
+    const hasImmediateWin = g.history && g.history.some(h => !h.cancelled && h.type === 'magic-pirate');
     const isFinished = hasImmediateWin || (g.players.some(p => p.score >= g.targetScore) && 
                        g.players.every(p => p.score >= g.targetScore || g.playersWhoHadFinalTurn.includes(p.id)));
 
@@ -983,16 +983,17 @@ function generateGameReportText(gData) {
   const chronological = [...gData.history].reverse();
   chronological.forEach((h, idx) => {
     let detail = "";
+    const prefix = h.cancelled ? '[ANNULÉ] ' : '';
     if (h.type === 'skull-island') {
-      detail = `${h.activePlayerName} a fait l'Île de Tête-de-Mort (${h.skulls} têtes, pénalité de ${h.penalty} aux rivaux)`;
+      detail = `${prefix}${h.activePlayerName} a fait l'Île de Tête-de-Mort (${h.skulls} têtes, pénalité de ${h.penalty} aux rivaux)`;
     } else if (h.type === 'zombie-win') {
-      detail = `${h.playerName} a gagné son combat de zombie (+1200 pts)`;
+      detail = `${prefix}${h.playerName} a gagné son combat de zombie (+1200 pts)`;
     } else if (h.type === 'zombie-loss') {
-      detail = `${h.activePlayerName} a perdu son combat de zombie (-1200 pts aux rivaux)`;
+      detail = `${prefix}${h.activePlayerName} a perdu son combat de zombie (-1200 pts aux rivaux)`;
     } else if (h.type === 'magic-pirate') {
-      detail = `${h.playerName} a réussi la Magie Pirate (9 identiques) et remporte la partie`;
+      detail = `${prefix}${h.playerName} a réussi la Magie Pirate (9 identiques) et remporte la partie`;
     } else {
-      detail = `${h.playerName} : ${h.pts > 0 ? '+' + h.pts : h.pts} pts (Total: ${h.newTotal})`;
+      detail = `${prefix}${h.playerName} : ${h.pts > 0 ? '+' + h.pts : h.pts} pts (Total: ${h.newTotal})`;
     }
     report += `${idx + 1}. ${detail}\n`;
   });
@@ -1112,7 +1113,7 @@ function loadGame(id) {
   players = g.players;
   activePlayerIndex = g.activePlayerIndex;
   initialFirstPlayerIndex = g.initialFirstPlayerIndex !== undefined ? g.initialFirstPlayerIndex : 0;
-  history = g.history;
+  history = g.history || [];
   gameStarted = g.gameStarted;
   isFinalRound = g.isFinalRound;
   playersWhoHadFinalTurn = new Set(g.playersWhoHadFinalTurn || []);
@@ -1347,7 +1348,7 @@ function startNextGame() {
 function checkGameStatusAndAdvance() {
   if (players.length === 0) return;
 
-  const lastAction = history[0];
+  const lastAction = history.find(h => !h.cancelled);
   if (lastAction && lastAction.type === 'magic-pirate') {
     return;
   }
@@ -1409,7 +1410,7 @@ function render() {
   const winners = players.filter(p => p.score >= targetScore);
   const alertBanner = document.getElementById('alert-banner');
   
-  const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
+  const hasImmediateWin = history.some(h => !h.cancelled && h.type === 'magic-pirate');
 
   if (hasImmediateWin || winners.length > 0) {
     isFinalRound = true;
@@ -1439,7 +1440,8 @@ function render() {
   const container = document.getElementById('players-container');
   container.innerHTML = '';
 
-  if (history.length > 0) {
+  const validHistoryCount = history.filter(h => !h.cancelled).length;
+  if (validHistoryCount > 0) {
     document.getElementById('history-card').style.display = 'block';
   } else {
     document.getElementById('history-card').style.display = 'none';
@@ -1690,7 +1692,8 @@ function resolveMagicPirate() {
     pts: actualChange,
     prevScore: activePlayer.score - actualChange,
     newTotal: activePlayer.score,
-    savedActivePlayerIndex: activePlayerIndex
+    savedActivePlayerIndex: activePlayerIndex,
+    cancelled: false
   });
 
   renderHistory();
@@ -1712,7 +1715,8 @@ function resolveZombie(won) {
       playerName: activePlayer.name,
       pts: actualChange,
       newTotal: activePlayer.score,
-      savedActivePlayerIndex: activePlayerIndex
+      savedActivePlayerIndex: activePlayerIndex,
+      cancelled: false
     });
   } else {
     playSound('zombieDefeat');
@@ -1732,7 +1736,8 @@ function resolveZombie(won) {
         activePlayerName: activePlayer.name,
         pointsPerOther: pointsPerOther,
         previousScores: previousScores,
-        savedActivePlayerIndex: activePlayerIndex
+        savedActivePlayerIndex: activePlayerIndex,
+        cancelled: false
       });
     }
   }
@@ -1783,7 +1788,8 @@ function resolveSkullIsland(count) {
     swords: swordsCount,
     selfPenalty: selfPenalty,
     previousScores: previousScores,
-    savedActivePlayerIndex: activePlayerIndex
+    savedActivePlayerIndex: activePlayerIndex,
+    cancelled: false
   });
 
   document.getElementById('pirate-card-multiplier').checked = false;
@@ -1819,7 +1825,8 @@ function addScoreToCurrentPlayer(pts) {
     actualChange: actualChange,
     prevScore: prevScore,
     newTotal: p.score,
-    savedActivePlayerIndex: activePlayerIndex
+    savedActivePlayerIndex: activePlayerIndex,
+    cancelled: false
   });
 
   renderHistory();
@@ -1833,30 +1840,35 @@ function addScoreToCurrentPlayer(pts) {
 // ==========================================
 function renderHistory() {
   const container = document.getElementById('history-container');
-  container.innerHTML = history.slice(0, 10).map(h => {
+  container.innerHTML = history.slice(0, 15).map(h => {
+    const styleAttr = h.cancelled ? 'style="opacity: 0.5; text-decoration: line-through; color: var(--red-pirate);"' : '';
+    const prefix = h.cancelled ? '❌ [Annulé] ' : '';
+
     if (h.type === 'skull-island') {
       let badge = '';
       if (h.isDouble) badge = ' 🏴‍☠️(x2)';
       if (h.isPeace) badge = ` ☮️(Paix : ${h.swords} sabre${h.swords > 1 ? 's' : ''})`;
 
       let detailSelf = h.selfPenalty > 0 ? ` & -${h.selfPenalty} pts à soi` : '';
-      return `<div class="history-item" style="color: #7d3c98;"><span><strong>💀 ${h.activePlayerName}</strong> (Têtes-de-Mort: ${h.skulls}${badge})</span><span><strong>-${h.penalty} pts</strong> aux rivaux${detailSelf}</span></div>`;
+      return `<div class="history-item" ${styleAttr}><span><strong>${prefix}💀 ${h.activePlayerName}</strong> (Têtes-de-Mort: ${h.skulls}${badge})</span><span><strong>-${h.penalty} pts</strong> aux rivaux${detailSelf}</span></div>`;
     } else if (h.type === 'zombie-win') {
-      return `<div class="history-item" style="color: #1e8449;"><span><strong>🧟 ${h.playerName}</strong> (Zombie Gagné)</span><span><strong>+1200 pts</strong></span></div>`;
+      return `<div class="history-item" ${styleAttr}><span><strong>${prefix}🧟 ${h.playerName}</strong> (Zombie Gagné)</span><span><strong>+1200 pts</strong></span></div>`;
     } else if (h.type === 'zombie-loss') {
-      return `<div class="history-item" style="color: #a93226;"><span><strong>🧟 ${h.activePlayerName}</strong> (Zombie Perdu)</span><span><strong>+${h.pointsPerOther} pts</strong> aux rivaux</span></div>`;
+      return `<div class="history-item" ${styleAttr}><span><strong>${prefix}🧟 ${h.activePlayerName}</strong> (Zombie Perdu)</span><span><strong>+${h.pointsPerOther} pts</strong> aux rivaux</span></div>`;
     } else if (h.type === 'magic-pirate') {
-      return `<div class="history-item" style="color: #d35400;"><span><strong>✨ ${h.playerName}</strong> (Magie Pirate)</span><span><strong>Victoire immédiate !</strong></span></div>`;
+      return `<div class="history-item" ${styleAttr}><span><strong>${prefix}✨ ${h.playerName}</strong> (Magie Pirate)</span><span><strong>Victoire immédiate !</strong></span></div>`;
     } else {
-      return `<div class="history-item"><span><strong>${h.playerName}</strong> : ${h.pts > 0 ? '+' + h.pts : h.pts} pts</span><span>(Total: ${h.newTotal})</span></div>`;
+      return `<div class="history-item" ${styleAttr}><span><strong>${prefix}${h.playerName}</strong> : ${h.pts > 0 ? '+' + h.pts : h.pts} pts</span><span>(Total: ${h.newTotal})</span></div>`;
     }
   }).join('');
 }
 
 function undoLastTurn() {
   playSound('click');
-  if (history.length === 0) return;
-  const last = history.shift();
+  const lastIdx = history.findIndex(h => !h.cancelled);
+  if (lastIdx === -1) return;
+  const last = history[lastIdx];
+  last.cancelled = true;
 
   if (last.savedActivePlayerIndex !== undefined) {
     activePlayerIndex = last.savedActivePlayerIndex;
@@ -1877,7 +1889,7 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
-  const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
+  const hasImmediateWin = history.some(h => !h.cancelled && h.type === 'magic-pirate');
   const qualifyWinners = players.filter(p => p.score >= targetScore);
 
   if (hasImmediateWin || qualifyWinners.length > 0) {
