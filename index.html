@@ -940,8 +940,10 @@ function renderSavedGamesList() {
     const item = document.createElement('div');
     item.className = `saved-game-item ${g.id === currentGameId ? 'active-game' : ''}`;
     
-    const isFinished = g.players.some(p => p.score >= g.targetScore) && 
-                       g.players.every(p => p.score >= g.targetScore || g.playersWhoHadFinalTurn.includes(p.id));
+    // Modification apportée ici : Vérification de fin de partie instantanée si Magie Pirate utilisée
+    const hasImmediateWin = g.history && g.history.some(h => h.type === 'magic-pirate');
+    const isFinished = hasImmediateWin || (g.players.some(p => p.score >= g.targetScore) && 
+                       g.players.every(p => p.score >= g.targetScore || g.playersWhoHadFinalTurn.includes(p.id)));
 
     const playerNames = g.players.map(p => `${p.name} (${p.score}pt)`).join(', ');
 
@@ -968,7 +970,6 @@ function createNewGame() {
   if (players.length < 2) return;
   playSound('victory');
 
-  // Correction : Réinitialisation propre des scores de chaque joueur pour une nouvelle partie
   players.forEach(p => p.score = 0);
   history = [];
   isFinalRound = false;
@@ -1065,7 +1066,6 @@ function deleteGame(id) {
 
 function showSetupScreen() {
   playSound('click');
-  // Correction : On détache l'ID de la partie en cours pour éviter d'écraser l'ancienne partie si on clique sur "Nouvelle partie"
   currentGameId = null;
   document.getElementById('main-menu').style.display = 'block';
   document.getElementById('game-section').style.display = 'none';
@@ -1245,6 +1245,12 @@ function startNextGame() {
 function checkGameStatusAndAdvance() {
   if (players.length === 0) return;
 
+  // Modification apportée ici : Si le dernier coup joué était une "Magie Pirate", on ne passe pas au joueur suivant et on bloque les tours
+  const lastAction = history[0];
+  if (lastAction && lastAction.type === 'magic-pirate') {
+    return;
+  }
+
   playersWhoHadFinalTurn.add(players[activePlayerIndex].id);
   const qualifyWinners = players.filter(p => p.score >= targetScore);
 
@@ -1302,12 +1308,15 @@ function render() {
   const winners = players.filter(p => p.score >= targetScore);
   const alertBanner = document.getElementById('alert-banner');
   
-  if (winners.length > 0) {
+  // Modification apportée ici : Détection d'une victoire immédiate par Magie Pirate pour l'affichage de fin de partie directe
+  const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
+
+  if (hasImmediateWin || winners.length > 0) {
     isFinalRound = true;
-    const winnerNames = winners.map(w => w.name).join(', ');
-    const remainingToPlay = players.filter(p => p.score < targetScore && !playersWhoHadFinalTurn.has(p.id));
+    const remainingToPlay = hasImmediateWin ? [] : players.filter(p => p.score < targetScore && !playersWhoHadFinalTurn.has(p.id));
     
     if (remainingToPlay.length > 0) {
+      const winnerNames = winners.map(w => w.name).join(', ');
       alertBanner.style.display = 'block';
       alertBanner.innerHTML = `🎯 <strong>${winnerNames}</strong> a atteint l'objectif !<br>⚡ Dernier tour pour les autres moussaillons !`;
     } else {
@@ -1766,7 +1775,9 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
-  const hasWinners = players.some(p => p.score >= targetScore);
+  const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
+  const hasWinners = hasImmediateWin || players.some(p => p.score >= targetScore);
+  
   if (!hasWinners) {
     isFinalRound = false;
     playersWhoHadFinalTurn.clear();
