@@ -940,7 +940,6 @@ function renderSavedGamesList() {
     const item = document.createElement('div');
     item.className = `saved-game-item ${g.id === currentGameId ? 'active-game' : ''}`;
     
-    // Modification apportée ici : Vérification de fin de partie instantanée si Magie Pirate utilisée
     const hasImmediateWin = g.history && g.history.some(h => h.type === 'magic-pirate');
     const isFinished = hasImmediateWin || (g.players.some(p => p.score >= g.targetScore) && 
                        g.players.every(p => p.score >= g.targetScore || g.playersWhoHadFinalTurn.includes(p.id)));
@@ -1245,7 +1244,6 @@ function startNextGame() {
 function checkGameStatusAndAdvance() {
   if (players.length === 0) return;
 
-  // Modification apportée ici : Si le dernier coup joué était une "Magie Pirate", on ne passe pas au joueur suivant et on bloque les tours
   const lastAction = history[0];
   if (lastAction && lastAction.type === 'magic-pirate') {
     return;
@@ -1308,7 +1306,6 @@ function render() {
   const winners = players.filter(p => p.score >= targetScore);
   const alertBanner = document.getElementById('alert-banner');
   
-  // Modification apportée ici : Détection d'une victoire immédiate par Magie Pirate pour l'affichage de fin de partie directe
   const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
 
   if (hasImmediateWin || winners.length > 0) {
@@ -1775,19 +1772,22 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
+  // CORRECTION : Recalcul propre de la fin de partie et des tours finaux suite à l'annulation
   const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
-  const hasWinners = hasImmediateWin || players.some(p => p.score >= targetScore);
-  
-  if (!hasWinners) {
-    isFinalRound = false;
+  const qualifyWinners = players.filter(p => p.score >= targetScore);
+
+  if (hasImmediateWin || qualifyWinners.length > 0) {
+    isFinalRound = true;
     playersWhoHadFinalTurn.clear();
-  } else {
-    playersWhoHadFinalTurn.clear();
+    // On reconstruit le set des joueurs ayant déjà eu leur tour final basé sur ceux qui ont atteint ou dépassé le score après le coup en cours
     players.forEach(p => {
       if (p.score >= targetScore) {
         playersWhoHadFinalTurn.add(p.id);
       }
     });
+  } else {
+    isFinalRound = false;
+    playersWhoHadFinalTurn.clear();
   }
 
   renderHistory();
