@@ -341,7 +341,7 @@
     .saved-game-info { display: flex; flex-direction: column; gap: 2px; }
     .saved-game-title { font-weight: bold; color: var(--wood-dark); font-size: 0.95rem; }
     .saved-game-meta { font-size: 0.8rem; color: var(--text-muted); }
-    .saved-game-actions { display: flex; gap: 6px; }
+    .saved-game-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
     /* Banderoles d'alerte et d'annonce de début de tour */
     .alert-banner {
@@ -553,7 +553,7 @@
     }
 
     .pirate-modal {
-      background: var(--parchment-bg); border: 4px solid var(--wood-medium); border-radius: 12px; padding: 20px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center;
+      background: var(--parchment-bg); border: 4px solid var(--wood-medium); border-radius: 12px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center;
     }
 
     .pirate-modal-title { font-family: 'Pirata One', cursive; font-size: 1.5rem; color: var(--wood-dark); margin-bottom: 10px; }
@@ -564,6 +564,10 @@
 
     .pirate-modal-input {
       width: 100%; padding: 10px; font-size: 1.2rem; font-weight: bold; text-align: center; border: 2px solid var(--wood-medium); border-radius: 6px; background: #fff8eb; color: var(--wood-dark); margin-bottom: 15px;
+    }
+
+    .pirate-modal-textarea {
+      width: 100%; height: 120px; padding: 8px; font-size: 0.85rem; font-family: monospace; border: 2px solid var(--wood-medium); border-radius: 6px; background: #fff8eb; color: var(--wood-dark); margin-bottom: 15px; resize: vertical;
     }
 
     .pirate-modal-buttons { display: flex; gap: 10px; }
@@ -652,8 +656,9 @@
   <!-- SECTION JEU (TABLEAU DE BORD ACTIF) -->
   <div id="game-section" style="display: none;">
     <!-- Boutons de navigation rapides -->
-    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; gap: 8px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
       <button class="btn btn-wood btn-sm" onclick="showSetupScreen()">📋 Menu Principal</button>
+      <button class="btn btn-wood btn-sm" onclick="exportCurrentGameReport()">📋 Copier rapport de partie</button>
       <button class="btn btn-wood btn-sm" onclick="resetCurrentGame()">🔄 Recommencer cette partie</button>
     </div>
 
@@ -955,6 +960,7 @@ function renderSavedGamesList() {
       </div>
       <div class="saved-game-actions">
         <button class="btn btn-gold btn-sm" onclick="loadGame('${g.id}')">▶️ Reprendre</button>
+        <button class="btn btn-wood btn-sm" onclick="exportSavedGameReport('${g.id}')">📋 Rapport</button>
         <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">🗑️</button>
       </div>
     `;
@@ -963,7 +969,106 @@ function renderSavedGamesList() {
 }
 
 // ==========================================
-// 6. DÉMARRAGE, CHARGEMENT ET SUPPRESSION DE PARTIE
+// 6. EXPORT / RAPPORT DE PARTIE POUR LE DEBUG
+// ==========================================
+function generateGameReportText(gData) {
+  let report = `=== RAPPORT DE PARTIE MILLE SABORDS ===\n`;
+  report += `Objectif : ${gData.targetScore} pts | Négatifs : ${gData.allowNegativeScores ? 'Oui' : 'Non'}\n`;
+  report += `Joueurs et Scores finaux :\n`;
+  gData.players.forEach(p => {
+    report += `- ${p.name} : ${p.score} pts\n`;
+  });
+  report += `\nHistorique des actions (${gData.history.length} tours) :\n`;
+  
+  // On inverse pour l'ordre chronologique (du premier au dernier tour)
+  const chronological = [...gData.history].reverse();
+  chronological.forEach((h, idx) => {
+    let detail = "";
+    if (h.type === 'skull-island') {
+      detail = `${h.activePlayerName} a fait l'Île de Tête-de-Mort (${h.skulls} têtes, pénalité de ${h.penalty} aux rivaux)`;
+    } else if (h.type === 'zombie-win') {
+      detail = `${h.playerName} a gagné son combat de zombie (+1200 pts)`;
+    } else if (h.type === 'zombie-loss') {
+      detail = `${h.activePlayerName} a perdu son combat de zombie (-1200 pts aux rivaux)`;
+    } else if (h.type === 'magic-pirate') {
+      detail = `${h.playerName} a réussi la Magie Pirate (9 identiques) et remporte la partie`;
+    } else {
+      detail = `${h.playerName} : ${h.pts > 0 ? '+' + h.pts : h.pts} pts (Total: ${h.newTotal})`;
+    }
+    report += `${idx + 1}. ${detail}\n`;
+  });
+  report += `----------------------------------------\n`;
+  report += `Données JSON brutes (pour debug technique) :\n`;
+  report += JSON.stringify(gData);
+  return report;
+}
+
+function exportCurrentGameReport() {
+  playSound('click');
+  const currentData = {
+    targetScore,
+    allowNegativeScores,
+    randomFirstPlayer,
+    players,
+    history,
+    isFinalRound,
+    playersWhoHadFinalTurn: Array.from(playersWhoHadFinalTurn)
+  };
+  const reportStr = generateGameReportText(currentData);
+  openReportModal("📋 Rapport de partie", reportStr);
+}
+
+function exportSavedGameReport(id) {
+  playSound('click');
+  const g = savedGames.find(item => item.id === id);
+  if (!g) return;
+  const reportStr = generateGameReportText(g);
+  openReportModal("📋 Rapport de partie (Archives)", reportStr);
+}
+
+function openReportModal(title, textContent) {
+  resetModalState();
+  document.getElementById('modal-title').innerText = title;
+  
+  const textElem = document.getElementById('modal-text');
+  textElem.style.display = 'none';
+  
+  const input = document.getElementById('modal-input');
+  input.style.display = 'none';
+
+  const customContainer = document.getElementById('modal-custom-content');
+  customContainer.innerHTML = `
+    <div style="font-size:0.8rem; text-align:left; margin-bottom:6px; font-weight:bold; color:var(--wood-dark);">Copie ce texte et colle-le dans notre conversation pour analyser un bug :</div>
+    <textarea id="report-textarea" class="pirate-modal-textarea" readonly>${textContent}</textarea>
+    <button class="btn btn-gold btn-sm" style="width:100%; margin-bottom:10px;" onclick="copyReportText()">📋 Copier dans le presse-papier</button>
+  `;
+
+  document.getElementById('modal-btn-cancel').style.display = 'none';
+  document.getElementById('modal-btn-confirm').innerText = 'Fermer';
+  
+  document.getElementById('custom-modal-overlay').style.display = 'flex';
+  currentModalCallback = () => {
+    customContainer.innerHTML = '';
+    document.getElementById('modal-btn-cancel').style.display = 'inline-flex';
+  };
+}
+
+function copyReportText() {
+  const textarea = document.getElementById('report-textarea');
+  if (textarea) {
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      alert("Rapport copié dans le presse-papier ! Tu peux me le coller ici.");
+    }).catch(() => {
+      // Fallback si l'API clipboard est bloquée
+      document.execCommand('copy');
+      alert("Rapport copié !");
+    });
+  }
+}
+
+// ==========================================
+// 7. DÉMARRAGE, CHARGEMENT ET SUPPRESSION DE PARTIE
 // ==========================================
 function createNewGame() {
   if (players.length < 2) return;
@@ -1101,7 +1206,7 @@ function resetCurrentGame() {
 }
 
 // ==========================================
-// 7. GÉNÉRATION DES GRILLES DE POINTS ET CONFIGURATIONS
+// 8. GÉNÉRATION DES GRILLES DE POINTS ET CONFIGURATIONS
 // ==========================================
 function initPointGrids() {
   const addGrid = document.getElementById('add-points-grid');
@@ -1175,7 +1280,7 @@ function toggleRandomLever() {
 }
 
 // ==========================================
-// 8. GESTION DES JOUEURS (AJOUT / SUPPRESSION)
+// 9. GESTION DES JOUEURS (AJOUT / SUPPRESSION)
 // ==========================================
 function addPlayer() {
   const input = document.getElementById('player-name-input');
@@ -1239,7 +1344,7 @@ function startNextGame() {
 }
 
 // ==========================================
-// 9. LOGIQUE DE TOUR ET ROTATION DU CAPITAINE
+// 10. LOGIQUE DE TOUR ET ROTATION DU CAPITAINE
 // ==========================================
 function checkGameStatusAndAdvance() {
   if (players.length === 0) return;
@@ -1295,7 +1400,7 @@ function adjustScore(player, delta) {
 }
 
 // ==========================================
-// 10. RENDU GRAPHIQUE PRINCIPAL DE LA PARTIE
+// 11. RENDU GRAPHIQUE PRINCIPAL DE LA PARTIE
 // ==========================================
 function render() {
   if (!gameStarted) return;
@@ -1387,7 +1492,7 @@ function render() {
 }
 
 // ==========================================
-// 11. GESTION DES FENÈTRES MODALES (BOÎTES DE DIALOGUE)
+// 12. GESTION DES FENÈTRES MODALES (BOÎTES DE DIALOGUE)
 // ==========================================
 function resetModalState() {
   document.getElementById('modal-custom-content').innerHTML = '';
@@ -1452,7 +1557,7 @@ function confirmModal() {
 }
 
 // ==========================================
-// 12. GESTION DES SOUS-MENUS D'ACTIONS
+// 13. GESTION DES SOUS-MENUS D'ACTIONS
 // ==========================================
 function closeAllSubmenus() {
   document.getElementById('add-submenu').style.display = 'none';
@@ -1520,7 +1625,7 @@ function togglePeaceCardOption() {
 }
 
 // ==========================================
-// 13. MODALES DE SAISIE PERSONNALISÉE ET D'ÉDITION
+// 14. MODALES DE SAISIE PERSONNALISÉE ET D'ÉDITION
 // ==========================================
 function openCustomAddModal() {
   if (players.length === 0) return;
@@ -1567,7 +1672,7 @@ function openEditScoreModal(id) {
 }
 
 // ==========================================
-// 14. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES, TÊTES-DE-MORT & MAGIE PIRATE)
+// 15. RÉSOLUTION DES RÈGLES SPÉCIALES DU JEU (ZOMBIES, TÊTES-DE-MORT & MAGIE PIRATE)
 // ==========================================
 function resolveMagicPirate() {
   if (players.length === 0) return;
@@ -1724,7 +1829,7 @@ function addScoreToCurrentPlayer(pts) {
 }
 
 // ==========================================
-// 15. JOURNAL DE BORD (HISTORIQUE ET ANNULATION)
+// 16. JOURNAL DE BORD (HISTORIQUE ET ANNULATION)
 // ==========================================
 function renderHistory() {
   const container = document.getElementById('history-container');
@@ -1772,14 +1877,12 @@ function undoLastTurn() {
     if (p) p.score = last.prevScore !== undefined ? last.prevScore : p.score - last.actualChange;
   }
 
-  // CORRECTION : Recalcul propre de la fin de partie et des tours finaux suite à l'annulation
   const hasImmediateWin = history.some(h => h.type === 'magic-pirate');
   const qualifyWinners = players.filter(p => p.score >= targetScore);
 
   if (hasImmediateWin || qualifyWinners.length > 0) {
     isFinalRound = true;
     playersWhoHadFinalTurn.clear();
-    // On reconstruit le set des joueurs ayant déjà eu leur tour final basé sur ceux qui ont atteint ou dépassé le score après le coup en cours
     players.forEach(p => {
       if (p.score >= targetScore) {
         playersWhoHadFinalTurn.add(p.id);
@@ -1796,7 +1899,7 @@ function undoLastTurn() {
 }
 
 // ==========================================
-// 16. ENREGISTREMENT DU SERVICE WORKER (PWA)
+// 17. ENREGISTREMENT DU SERVICE WORKER (PWA)
 // ==========================================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
